@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.4"]
+
+    steps:
+      - name: Check out the gem
+        uses: actions/checkout@v6
+        with:
+          path: activestorage-aws-record
+
+      # This gem targets the not-yet-released generic Active Storage backend
+      # contract, so its Gemfile path-references a sibling Rails checkout at
+      # ../rails. Provide it from the public fork branch carrying that work.
+      - name: Check out Rails (activestorage-backends)
+        uses: actions/checkout@v6
+        with:
+          repository: thomaswitt/rails
+          ref: activestorage-backends
+          path: rails
+          fetch-depth: 1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+          working-directory: activestorage-aws-record
+
+      # Spin up a real DynamoDB Local from the gem's own docker-compose.yml
+      # (in-memory by default), then wait until it is serving on :8000.
+      - name: Start DynamoDB Local
+        working-directory: activestorage-aws-record
+        run: |
+          docker compose up -d
+          for i in $(seq 1 60); do
+            if curl -s -o /dev/null http://localhost:8000; then
+              echo "DynamoDB Local is up."; exit 0
+            fi
+            echo "waiting for DynamoDB Local ($i)…"; sleep 1
+          done
+          echo "DynamoDB Local did not become reachable" >&2
+          docker compose logs --no-color || true
+          exit 1
+
+      - name: Run tests
+        working-directory: activestorage-aws-record
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+        run: bundle exec rake test
+
+      - name: Run smoke scripts (Mode A, Mode B, schema discovery)
+        working-directory: activestorage-aws-record
+        env:
+          DYNAMODB_ENDPOINT: http://localhost:8000
+        run: bundle exec rake smoke
+
+      - name: Build the gem
+        working-directory: activestorage-aws-record
+        run: bundle exec rake build
+
+      - name: Stop DynamoDB Local
+        if: always()
+        working-directory: activestorage-aws-record
+        run: docker compose down -v
+
+  lint:
+    name: RuboCop
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the gem
+        uses: actions/checkout@v6
+        with:
+          path: activestorage-aws-record
+
+      # Needed so `bundle install` resolves the same gems as local development
+      # (RuboCop runs under bundler for the Omakase + rake plugins).
+      - name: Check out Rails (activestorage-backends)
+        uses: actions/checkout@v6
+        with:
+          repository: thomaswitt/rails
+          ref: activestorage-backends
+          path: rails
+          fetch-depth: 1
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler-cache: true
+          working-directory: activestorage-aws-record
+
+      - name: Run RuboCop
+        working-directory: activestorage-aws-record
+        run: bin/rubocop -f github

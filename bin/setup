@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+cd "$(dirname "$0")/.."
+
+bundle install
+
+# The test suite talks to DynamoDB Local. Bring it up if Docker is available
+# (in-memory and disposable by default — see docker-compose.yml).
+if command -v docker >/dev/null 2>&1; then
+  docker compose up -d
+  echo "DynamoDB Local is up. Run the suite with: bundle exec rake test"
+else
+  echo "Docker not found. Start DynamoDB Local yourself, then: bundle exec rake test"
+fi

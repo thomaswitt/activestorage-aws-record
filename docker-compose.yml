@@ -1,0 +1,51 @@
+name: activestorage-aws-record
+
+# DynamoDB Local for running the gem's test suite (and local development).
+#
+#   docker compose up -d                            # in-memory (DEFAULT — fast, disposable, nothing persisted)
+#   DYNAMODB_IN_MEMORY=false docker compose up -d   # opt in to persistence (stored in the `dynamodb_data` named volume)
+#   DYNAMODB_PORT=8002 docker compose up -d         # use a different host port (e.g. to avoid clashing with :8000)
+#
+# In-memory is the default; persistence is strictly opt-in via DYNAMODB_IN_MEMORY=false.
+# The default run mounts no host directory — there is no `docker_data/` to clean up.
+#
+# The test suite targets DYNAMODB_ENDPOINT (default http://localhost:8000) and
+# isolates itself with a per-process table name, so it never touches other
+# tables on the same endpoint.
+
+services:
+  dynamodb:
+    image: "amazon/dynamodb-local:latest"
+    container_name: activestorage-aws-record-dynamodb
+    entrypoint:
+      - "bash"
+      - "-c"
+      - |
+        set -euo pipefail
+        # In-memory by default; set DYNAMODB_IN_MEMORY=false to persist.
+        if [ "${DYNAMODB_IN_MEMORY:-true}" = "true" ]; then
+          exec java -jar DynamoDBLocal.jar -sharedDb -disableTelemetry -inMemory
+        else
+          exec java -jar DynamoDBLocal.jar -sharedDb -disableTelemetry -dbPath /home/dynamodblocal/data
+        fi
+    environment:
+      - AWS_ACCESS_KEY_ID=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy
+      - AWS_DEFAULT_REGION=eu-central-1
+    ports:
+      - "${DYNAMODB_PORT:-8000}:8000"
+    working_dir: /home/dynamodblocal
+    # Only written to in persistence mode (DYNAMODB_IN_MEMORY=false). A named
+    # volume keeps data out of the project tree, so the default in-memory run
+    # creates no host directory.
+    volumes:
+      - dynamodb_data:/home/dynamodblocal/data
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  dynamodb_data:

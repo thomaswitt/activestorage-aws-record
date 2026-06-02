@@ -1,0 +1,23 @@
+# Bundler / build artifacts
+/.bundle/
+/vendor/bundle/
+/pkg/
+/tmp/
+/doc/
+/rdoc/
+/coverage/
+*.gem
+
+# This gem path-references a local Rails checkout and pins alpha framework
+# versions, so the resolved lockfile is machine-specific. Per the Bundler
+# convention for libraries, the lockfile is not committed.
+/Gemfile.lock
+
+# YARD / RBS build output
+/.yardoc/
+/_yardoc/
+
+# Editor / OS cruft
+.DS_Store
+*.swp
+*~

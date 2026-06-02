@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "activestorage-aws-record"
+
+# This loads the gem's code so you can inspect the constants and configuration:
+#
+#   ActiveStorage::AwsRecord::VERSION
+#   ActiveStorage::AwsRecord.config
+#
+# Exercising actual DynamoDB persistence (Blob/Attachment/VariantRecord) needs a
+# booted Active Storage engine + a reachable table; see test/support/dynamo_setup.rb
+# for a minimal no-ActiveRecord boot, or load this gem inside your Rails app.
+
+require "irb"
+IRB.start(__FILE__)

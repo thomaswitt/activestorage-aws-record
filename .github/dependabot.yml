@@ -1,0 +1,15 @@
+# Keep GitHub Actions current automatically; Ruby deps are managed manually
+# (the gem ships loose constraints and no committed lockfile), so the bundler
+# ecosystem is registered but disabled (open-pull-requests-limit: 0).
+version: 2
+updates:
+  - package-ecosystem: bundler
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
