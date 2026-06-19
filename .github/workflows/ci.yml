@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Check out the gem
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: activestorage-aws-record
 
@@ -33,7 +33,7 @@ jobs:
       # contract, so its Gemfile path-references a sibling Rails checkout at
       # ../rails. Provide it from the public fork branch carrying that work.
       - name: Check out Rails (activestorage-backends)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: thomaswitt/rails
           ref: activestorage-backends
@@ -90,14 +90,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out the gem
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: activestorage-aws-record
 
       # Needed so `bundle install` resolves the same gems as local development
       # (RuboCop runs under bundler for the Omakase + rake plugins).
       - name: Check out Rails (activestorage-backends)
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: thomaswitt/rails
           ref: activestorage-backends
